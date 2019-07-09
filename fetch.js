@@ -9,7 +9,7 @@
     function _initBody(body){
         
     }
-    
+
     function normalizeMethod (method) {
         let upper = method.toUpperCase()
         return methods.indexOf(upper) > -1 ? upper : method
@@ -49,11 +49,17 @@
 
     self.fetch = function(url, init) {
         return new Promise((resolve, reject) =>{
-
             let request = new Request(url, init)
 
+            if(request.signal && request.signal.aborted) {
+                return reject(new DOMException('Aborted', 'AbortError'))
+            }
+
             let xhr = new XMLHttpRequest()
-            xhr.open(request.method, request.url, true)
+
+            function abortXhr() {
+                xhr.abort()
+            }
 
             xhr.onload = () => {
                 if (xhr.status === 200) {
@@ -62,9 +68,39 @@
                     reject(new Error(xhr.statusText))
                 }
             }
+            
             xhr.onerror = () => {
-                reject(new Error(xhr.statusText))
+                reject(new TypeError('Network request failed'))
             }
+
+            xhr.ontimeout = () => {
+                reject(new TypeError('Network request failed'))
+            }
+
+            xhr.onabort = () => {
+                reject(new DOMException('Aborted', 'AbortError'))
+            }
+
+            xhr.open(request.method, request.url, true)
+
+            if(request.credentials === 'include') {
+                xhr.withCredentials = true
+            } else if (request.credentials === 'omit') {
+                xhr.withCredentials = false
+            }
+
+            if(request.signal) {
+                // 執行AbortController.abort() 時會觸發
+                request.signal.addEventListener('abort', abortXhr)
+                
+                xhr.onreadystatechange = () => {
+                    // 請求已完成
+                    if(xhr.readyState === 4) {
+                        request.signal.removeEventListener('abort', abortXhr)
+                    }
+                }
+            }
+
             xhr.send()
         })
     }

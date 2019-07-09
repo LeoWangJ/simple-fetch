@@ -1,3 +1,3 @@
 ## simple-fetch
 
-模擬fetch API 
+此專案主旨在實現fetch polyfill源碼。
