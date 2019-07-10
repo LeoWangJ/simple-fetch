@@ -2,12 +2,69 @@
 
     let methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
     
-    function Headers(headers) {
-
+    function normalizeName(name) {
+        if( typeof name !== 'string') {
+            name = String(name)
+        }
+        if (/[^a-z0-9\-#$%&'*+.^_`|~]/i.test(name)) {
+            throw new TypeError('Invalid character in header field name')
+        }
+        return name.toLowerCase()
     }
 
-    function _initBody(body){
-        
+    function normalizeValue(value) {
+        if( typeof value !== 'string') {
+            value = String(value)
+        }
+
+        return value
+    }
+    /*
+    * 處理http headers
+    * append - 新增
+    * delete - 刪除
+    * get - 查詢
+    * set - 修改
+    * has - 是否存在
+    * forEach -
+    * keys -
+    * values -
+    * entries -
+    */
+    function Headers(headers) {
+        this.map = {}
+
+        if(headers instanceof Headers) {
+            headers.forEach((value, name) => {
+                this.append(name,value)
+            })
+        } else if(Array.isArray(headers)) {
+            headers.forEach(header=>{
+                this.append(header[0], header[1])
+            })
+        } else if(headers) {
+            Object.getOwnPropertyNames(headers).forEach(name=>{
+                this.append(name, headers[name])
+            })
+        }
+    }
+
+    Headers.prototype.append = function(name, value) {
+      name = normalizeName(name)
+      value = normalizeValue(value)
+      let oldValue = this.map[name]
+      // 若已經存在值，則用逗點隔開
+      this.map[name] = oldValue ? oldValue + ', ' + value : value
+    }
+
+    Headers.prototype['delete'] = function(name) {
+        delete this.map[normalizeName(name)]
+    }
+
+    function Body(){
+        this._initBody = function(body) {
+            
+        }
     }
 
     function normalizeMethod (method) {
@@ -92,7 +149,7 @@
             if(request.signal) {
                 // 執行AbortController.abort() 時會觸發
                 request.signal.addEventListener('abort', abortXhr)
-                
+
                 xhr.onreadystatechange = () => {
                     // 請求已完成
                     if(xhr.readyState === 4) {
