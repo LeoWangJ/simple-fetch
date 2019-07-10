@@ -60,6 +60,19 @@
     Headers.prototype['delete'] = function(name) {
         delete this.map[normalizeName(name)]
     }
+    
+    Headers.prototype.get = function(name) {
+        name = normalizeName(name)
+        return this.map[normalizeName(name)] ? name : null
+    }
+
+    Headers.prototype.set = function(name, value) {
+        this.map[normalizeName(name)] = normalizeValue(value)
+    }
+
+    Headers.prototype.has = function(name) {
+        return this.map.hasOwnProperty(normalizeName(name))
+    }
 
     function Body(){
         this._initBody = function(body) {
