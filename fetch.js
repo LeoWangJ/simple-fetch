@@ -1,3 +1,5 @@
+import { callbackify } from "util";
+
 (function(self){
 
     let methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
@@ -19,6 +21,11 @@
 
         return value
     }
+    
+    function iteratorFor(items) {
+
+    }
+
     /*
     * 處理http headers
     * append - 新增
@@ -26,8 +33,8 @@
     * get - 查詢
     * set - 修改
     * has - 是否存在
-    * forEach -
-    * keys -
+    * forEach - 由於物件無forEach方法,所以自行實現
+    * keys - 
     * values -
     * entries -
     */
@@ -74,10 +81,35 @@
         return this.map.hasOwnProperty(normalizeName(name))
     }
 
-    function Body(){
-        this._initBody = function(body) {
-            
+    Headers.prototype.forEach = function(callback, thisArg) {
+        for(var name in this.map) {
+            if(this.map.hasOwnProperty(name)) {
+                callback.call(thisArg, this.map[name], name, this)
+            }
         }
+    }
+
+    // Headers.prototype.keys = function() {
+    //     let item = []
+    //     this.forEach(function(value, name){
+    //         item.push(name)
+    //     })
+    //     return item
+    // }
+    
+    function Body(){
+        this.bodyUsed = false
+        this._initBody = function(body) {
+            this._bodyInit = body
+            if(!body) {
+              this._bodyText = ''
+            } else {
+                this._bodyText = body = Object.prototype.toString.call(body)
+            }
+        }
+        
+        
+        return this
     }
 
     function normalizeMethod (method) {
@@ -90,6 +122,10 @@
 
         //input 參數有 Resquest實例或者字串
         if(input instanceof Request) {
+          if(input.bodyUsed) {
+              throw new TypeError('Already read')
+          }
+        
           this.url = input.url
           this.credentials = input.credentials
           if(!options.headers) {
@@ -98,6 +134,11 @@
           this.method = input.method
           this.mode = input.mode
           this.signal = input.signal
+
+          if(!body && input._bodyInit != null) {
+              body = input._bodyInit
+              input.bodyUsed = true
+          }
         } else {
             this.url = String(input)
         }
