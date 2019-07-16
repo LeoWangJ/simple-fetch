@@ -99,6 +99,7 @@ import { callbackify } from "util";
     
     function Body(){
         this.bodyUsed = false
+
         this._initBody = function(body) {
             this._bodyInit = body
             if(!body) {
@@ -106,9 +107,17 @@ import { callbackify } from "util";
             } else {
                 this._bodyText = body = Object.prototype.toString.call(body)
             }
+
+            if(!this.headers.get('content-type')) {
+                if(typeof body === 'string') {
+                    this.headers.set('content-type', 'text/plain;charset=UTF-8')
+                } else if(this._bodyBlob && this._bodyBlob.type) {
+                    this.headers.set('content-type', this._bodyBlob.type)
+                }
+            }
         }
         
-        
+
         return this
     }
 
@@ -158,6 +167,10 @@ import { callbackify } from "util";
         this._initBody(body)
     }
 
+    Request.prototype.clone = function(){
+        return new Request(this, {body: this._bodyInit})
+    }
+
     self.fetch = function(url, init) {
         return new Promise((resolve, reject) =>{
             let request = new Request(url, init)
@@ -200,6 +213,10 @@ import { callbackify } from "util";
                 xhr.withCredentials = false
             }
 
+            request.headers.forEach(function(value,name) {
+                xhr.setRequestHeader(name, value)
+            })
+            
             if(request.signal) {
                 // 執行AbortController.abort() 時會觸發
                 request.signal.addEventListener('abort', abortXhr)
