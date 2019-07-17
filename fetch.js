@@ -1,9 +1,16 @@
-import { callbackify } from "util";
 
 (function(self){
-
-    let methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+    'use strict'
     
+    if(self.fetch) {
+        // return 
+    }
+
+    var support = {
+        searchParams: 'URLSearchParams' in self,
+        
+    }
+
     function normalizeName(name) {
         if( typeof name !== 'string') {
             name = String(name)
@@ -103,8 +110,12 @@ import { callbackify } from "util";
         this._initBody = function(body) {
             this._bodyInit = body
             if(!body) {
-              this._bodyText = ''
-            } else {
+                this._bodyText = ''
+            } else if(typeof body === 'string') {
+                this._bodyText = body
+            } else if(support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)){
+                this._bodyText = body.toString()
+            }else {
                 this._bodyText = body = Object.prototype.toString.call(body)
             }
 
@@ -113,6 +124,8 @@ import { callbackify } from "util";
                     this.headers.set('content-type', 'text/plain;charset=UTF-8')
                 } else if(this._bodyBlob && this._bodyBlob.type) {
                     this.headers.set('content-type', this._bodyBlob.type)
+                } else if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)){
+                    this.headers.set('content-type', 'application/x-www-form-urlencoded;charset=UTF-8')
                 }
             }
         }
@@ -121,6 +134,8 @@ import { callbackify } from "util";
         return this
     }
 
+    let methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+    
     function normalizeMethod (method) {
         let upper = method.toUpperCase()
         return methods.indexOf(upper) > -1 ? upper : method
@@ -216,7 +231,7 @@ import { callbackify } from "util";
             request.headers.forEach(function(value,name) {
                 xhr.setRequestHeader(name, value)
             })
-            
+
             if(request.signal) {
                 // 執行AbortController.abort() 時會觸發
                 request.signal.addEventListener('abort', abortXhr)
